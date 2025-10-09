@@ -44,7 +44,7 @@ user_history = {} # история последних коротких ссыл�
 UTM_SOURCES = [
     ("ВКонтакте", "vk"),
     ("Max", "max"),
-    ("Instagram", "instagram"),
+    ("Instagram", "inst"),
     ("TikTok", "tiktok"),
     ("Одноклассники", "ok"),
     ("YouTube", "youtube"),
@@ -54,34 +54,38 @@ UTM_SOURCES = [
     ("Сайт Горбилет", "site_GB")
 ]
 UTM_MEDIUMS_PUBLICATIONS = [
-    ("ВКонтакте пост", "vk_post"),
-    ("Instagram пост", "instagram_post"),
-    ("Telegram пост", "telegram_post"),
-    ("Pinterest пост", "pinterest_post"),
-    ("Одноклассники пост", "ok_post"),
-    ("YouTube публикация", "youtube_post"),
-    ("Горбилет блог", "gorbilet_blog"),
-    ("Сайт Горбилет", "site_GB"),
+    ("Пост Горбилет", "post_GB"),
+    ("Пост театр", "post_teatr"),
+    ("Пост дети", "post_deti"),
+    ("Пост Москва", "post_msk"),
+    ("Клип Москва", "clip_msk"),
+    ("Пост тимы", "post_timy"),
+    ("Клип ТР", "clip_TR"),
+    ("Пост ТР", "post_TR")
 ]
+
 UTM_MEDIUMS_MAILINGS = [
-    ("Email", "email"),
-    ("VK Direct", "vk_direct"),
-    ("TG Direct", "tg_direct"),
-    ("WhatsApp", "wa"),
-    ("Viber", "viber"),
-    ("SMS", "sms"),
+    ("Рассылка Горбилет", "rassilka_GB"),
+    ("Рассылка театр", "rassilka_teatr"),
+    ("Рассылка дети", "rassilka_deti"),
+    ("Рассылка Москва", "rassilka_msk"),
+    ("Рассылка ТР", "rassilka_tr"),
+    ("Рассылка блог", "blog_rassilka")
 ]
+
 UTM_MEDIUMS_STORIES = [
-    ("Instagram Stories", "instagram_story"),
-    ("VK Stories", "vk_story"),
-    ("Telegram Stories", "telegram_story"),
-    ("YouTube Shorts", "youtube_shorts"),
+    ("Сторис Горбилет", "stories_GB"),
+    ("Сторис театр", "stories_teatr"),
+    ("Сторис тимы", "stories_timy"),
+    ("Сторис дети", "deti"),
+    ("Сторис Москва", "stories_msk"),
+    ("Сторис ТР", "stories_TR")
 ]
+
 UTM_MEDIUMS_CHANNELS = [
-    ("Telegram канал", "telegram_channel"),
-    ("YouTube канал", "youtube_channel"),
-    ("VK канал", "vk_channel"),
-    ("Pinterest канал", "pinterest_channel"),
+    ("Канал Москва", "kanal_msk"),
+    ("Канал Горбилет", "kanal_GB"),
+    ("Канал ТР", "kanal_TR")
 ]
 # --- UTM_CAMPAIGN списки по группам ---
 UTM_CAMPAIGNS_SPB = [
