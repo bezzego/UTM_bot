@@ -330,14 +330,21 @@ async def select_campaign(callback: types.CallbackQuery):
     # Сохранить в историю (оставляем только 5 последних записей)
     history_list = user_history.get(user_id, [])
     history_list.append((base_url, full_url, short_url))
-    user_history[user_id] = history_list[-5:]
+    user_history[user_id] = history_list[-50:]
 
     # Отправить пользователю итоговый отчет с ссылками
     result_text = ("✅ Ссылка готова!\n\n"
-                   f"🔗 Исходная:\n{base_url}\n\n"
-                   f"🧩 С UTM:\n{full_url}\n\n"
-                   f"✂️ Сокращённая:\n{short_url}")
-    await callback.message.answer(result_text)
+               f"🔗 Исходная:\n{base_url}\n\n"
+               f"🧩 С UTM:\n{full_url}\n\n"
+               f"✂️ Сокращённая:\n{short_url}")
+
+    webapp_button = InlineKeyboardButton(
+        text="Открыть API GorBilet",
+        web_app=types.WebAppInfo(url="https://api.gorbilet.com/v2/admin/")
+    )
+    keyboard = types.InlineKeyboardMarkup(inline_keyboard=[[webapp_button]])
+
+    await callback.message.answer(result_text, reply_markup=keyboard)
 
 # Обработчик команды /history – вывод последних 5 созданных ссылок
 @dp.message(Command("history"))
