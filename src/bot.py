@@ -208,36 +208,30 @@ async def select_source(callback: types.CallbackQuery):
     # Обновляем предыдущее сообщение (убираем клавиатуру и фиксируем выбор, опционально)
     await callback.message.edit_text(f"Источник (utm_source) выбран: {source_val}")
 
-    # Отправить клавиатуру для выбора utm_medium по группам с заголовками
-    await callback.message.answer("Теперь выберите тип трафика (utm_medium):")
-
-    # СММ (публикации)
     builder = InlineKeyboardBuilder()
-    for name, val in UTM_MEDIUMS_PUBLICATIONS:
+    builder.button(text="📣 СММ (публикации)", callback_data="medgrp:publications")
+    builder.button(text="📧 СММ (рассылка)", callback_data="medgrp:mailings")
+    builder.button(text="📱 СММ IG (истории)", callback_data="medgrp:stories")
+    builder.button(text="📡 СММ (каналы)", callback_data="medgrp:channels")
+    builder.adjust(2)
+    await callback.message.answer("Выберите группу utm_medium:", reply_markup=builder.as_markup())
+
+@dp.callback_query(F.data.startswith("medgrp:"))
+async def select_medium_group(callback: types.CallbackQuery):
+    user_id = callback.from_user.id
+    group_val = callback.data.split(":", 1)[1]
+    builder = InlineKeyboardBuilder()
+    group_map = {
+        "publications": UTM_MEDIUMS_PUBLICATIONS,
+        "mailings": UTM_MEDIUMS_MAILINGS,
+        "stories": UTM_MEDIUMS_STORIES,
+        "channels": UTM_MEDIUMS_CHANNELS,
+    }
+    for name, val in group_map[group_val]:
         builder.add(InlineKeyboardButton(text=name, callback_data=f"med:{val}"))
     builder.adjust(2)
-    await callback.message.answer("📣 СММ (публикации):", reply_markup=builder.as_markup())
-
-    # СММ (рассылка)
-    builder = InlineKeyboardBuilder()
-    for name, val in UTM_MEDIUMS_MAILINGS:
-        builder.add(InlineKeyboardButton(text=name, callback_data=f"med:{val}"))
-    builder.adjust(2)
-    await callback.message.answer("📧 СММ (рассылка):", reply_markup=builder.as_markup())
-
-    # СММ IG (истории)
-    builder = InlineKeyboardBuilder()
-    for name, val in UTM_MEDIUMS_STORIES:
-        builder.add(InlineKeyboardButton(text=name, callback_data=f"med:{val}"))
-    builder.adjust(2)
-    await callback.message.answer("📱 СММ IG (истории):", reply_markup=builder.as_markup())
-
-    # СММ (каналы)
-    builder = InlineKeyboardBuilder()
-    for name, val in UTM_MEDIUMS_CHANNELS:
-        builder.add(InlineKeyboardButton(text=name, callback_data=f"med:{val}"))
-    builder.adjust(2)
-    await callback.message.answer("📡 СММ (каналы):", reply_markup=builder.as_markup())
+    await callback.message.edit_text(f"Вы выбрали группу: {group_val}")
+    await callback.message.answer("Теперь выберите конкретную utm_medium:", reply_markup=builder.as_markup())
 
 # Обработчик выбора типа трафика (utm_medium)
 @dp.callback_query(F.data.startswith("med:"))
@@ -253,43 +247,32 @@ async def select_medium(callback: types.CallbackQuery):
     await callback.answer()
     await callback.message.edit_text(f"Тип трафика (utm_medium) выбран: {medium_val}")
 
-    # Отправить клавиатуры кампаний по группам
-    await callback.message.answer("Теперь выберите кампанию (utm_campaign):")
-
-    # СПБ
     builder = InlineKeyboardBuilder()
-    for name, val in UTM_CAMPAIGNS_SPB:
+    builder.button(text="📍 Санкт-Петербург", callback_data="campgrp:spb")
+    builder.button(text="🏙 Москва", callback_data="campgrp:msk")
+    builder.button(text="✈️ Турция и зарубежье", callback_data="campgrp:tr")
+    builder.button(text="🌍 Регионы России", callback_data="campgrp:regions")
+    builder.button(text="🌐 Зарубежные направления", callback_data="campgrp:foreign")
+    builder.adjust(2)
+    await callback.message.answer("Выберите группу utm_campaign:", reply_markup=builder.as_markup())
+
+@dp.callback_query(F.data.startswith("campgrp:"))
+async def select_campaign_group(callback: types.CallbackQuery):
+    user_id = callback.from_user.id
+    group_val = callback.data.split(":", 1)[1]
+    builder = InlineKeyboardBuilder()
+    group_map = {
+        "spb": UTM_CAMPAIGNS_SPB,
+        "msk": UTM_CAMPAIGNS_MSK,
+        "tr": UTM_CAMPAIGNS_TR,
+        "regions": UTM_CAMPAIGNS_REGIONS,
+        "foreign": UTM_CAMPAIGNS_FOREIGN,
+    }
+    for name, val in group_map[group_val]:
         builder.add(InlineKeyboardButton(text=name, callback_data=f"camp:{val}"))
     builder.adjust(2)
-    await callback.message.answer("📍 Санкт-Петербург:", reply_markup=builder.as_markup())
-
-    # МСК
-    builder = InlineKeyboardBuilder()
-    for name, val in UTM_CAMPAIGNS_MSK:
-        builder.add(InlineKeyboardButton(text=name, callback_data=f"camp:{val}"))
-    builder.adjust(2)
-    await callback.message.answer("🏙 Москва:", reply_markup=builder.as_markup())
-
-    # Турция и зарубежье
-    builder = InlineKeyboardBuilder()
-    for name, val in UTM_CAMPAIGNS_TR:
-        builder.add(InlineKeyboardButton(text=name, callback_data=f"camp:{val}"))
-    builder.adjust(2)
-    await callback.message.answer("✈️ Турция и зарубежье:", reply_markup=builder.as_markup())
-
-    # Регионы России
-    builder = InlineKeyboardBuilder()
-    for name, val in UTM_CAMPAIGNS_REGIONS:
-        builder.add(InlineKeyboardButton(text=name, callback_data=f"camp:{val}"))
-    builder.adjust(2)
-    await callback.message.answer("🌍 Регионы России:", reply_markup=builder.as_markup())
-
-    # Зарубежные направления
-    builder = InlineKeyboardBuilder()
-    for name, val in UTM_CAMPAIGNS_FOREIGN:
-        builder.add(InlineKeyboardButton(text=name, callback_data=f"camp:{val}"))
-    builder.adjust(2)
-    await callback.message.answer("🌐 Зарубежные направления:", reply_markup=builder.as_markup())
+    await callback.message.edit_text(f"Вы выбрали группу кампаний: {group_val}")
+    await callback.message.answer("Теперь выберите конкретную кампанию (utm_campaign):", reply_markup=builder.as_markup())
 
 # Обработчик выбора кампании (utm_campaign)
 @dp.callback_query(F.data.startswith("camp:"))
