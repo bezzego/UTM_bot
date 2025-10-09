@@ -229,6 +229,7 @@ async def select_medium_group(callback: types.CallbackQuery):
     }
     for name, val in group_map[group_val]:
         builder.add(InlineKeyboardButton(text=name, callback_data=f"med:{val}"))
+    builder.add(InlineKeyboardButton(text="⬅ Назад", callback_data="back:medium"))
     builder.adjust(2)
     await callback.message.edit_text(f"Вы выбрали группу: {group_val}")
     await callback.message.answer("Теперь выберите конкретную utm_medium:", reply_markup=builder.as_markup())
@@ -270,6 +271,7 @@ async def select_campaign_group(callback: types.CallbackQuery):
     }
     for name, val in group_map[group_val]:
         builder.add(InlineKeyboardButton(text=name, callback_data=f"camp:{val}"))
+    builder.add(InlineKeyboardButton(text="⬅ Назад", callback_data="back:campaign"))
     builder.adjust(2)
     await callback.message.edit_text(f"Вы выбрали группу кампаний: {group_val}")
     await callback.message.answer("Теперь выберите конкретную кампанию (utm_campaign):", reply_markup=builder.as_markup())
@@ -328,6 +330,30 @@ async def select_campaign(callback: types.CallbackQuery):
     keyboard = types.InlineKeyboardMarkup(inline_keyboard=[[webapp_button]])
 
     await callback.message.answer(result_text, reply_markup=keyboard)
+
+@dp.callback_query(F.data.startswith("back:"))
+async def go_back(callback: types.CallbackQuery):
+    _, target = callback.data.split(":", 1)
+    if target == "medium":
+        builder = InlineKeyboardBuilder()
+        builder.button(text="📣 СММ (публикации)", callback_data="medgrp:publications")
+        builder.button(text="📧 СММ (рассылка)", callback_data="medgrp:mailings")
+        builder.button(text="📱 СММ IG (истории)", callback_data="medgrp:stories")
+        builder.button(text="📡 СММ (каналы)", callback_data="medgrp:channels")
+        builder.adjust(2)
+        await callback.message.edit_text("Выберите группу utm_medium:")
+        await callback.message.edit_reply_markup(reply_markup=builder.as_markup())
+
+    elif target == "campaign":
+        builder = InlineKeyboardBuilder()
+        builder.button(text="📍 Санкт-Петербург", callback_data="campgrp:spb")
+        builder.button(text="🏙 Москва", callback_data="campgrp:msk")
+        builder.button(text="✈️ Турция и зарубежье", callback_data="campgrp:tr")
+        builder.button(text="🌍 Регионы России", callback_data="campgrp:regions")
+        builder.button(text="🌐 Зарубежные направления", callback_data="campgrp:foreign")
+        builder.adjust(2)
+        await callback.message.edit_text("Выберите группу utm_campaign:")
+        await callback.message.edit_reply_markup(reply_markup=builder.as_markup())
 
 # Обработчик команды /history – вывод последних 5 созданных ссылок
 @dp.message(Command("history"))
