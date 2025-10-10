@@ -1,6 +1,8 @@
 import logging
 import asyncio
 import os
+import datetime
+from urllib.parse import urlparse, urlunparse, parse_qsl, urlencode
 
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command
@@ -290,38 +292,118 @@ async def select_campaign(callback: types.CallbackQuery):
     await callback.answer()
     await callback.message.edit_text(f"Кампания (utm_campaign) выбрана: {campaign_val}")
 
-    # Сформировать полную UTM-ссылку
+    # После выбора кампании спрашиваем — добавить дату (сегодня) или ввести вручную
+    builder = InlineKeyboardBuilder()
+    builder.button(text="📅 Сегодня", callback_data="adddate:today")
+    builder.button(text="✏️ Ввести дату", callback_data="adddate:manual")
+    builder.button(text="❌ Не добавлять дату", callback_data="adddate:none")
+    builder.adjust(2)
+    await callback.message.answer("Добавить дату в ссылку? Выберите один из вариантов:", reply_markup=builder.as_markup())
+
+
+@dp.callback_query(F.data.startswith("adddate:"))
+async def add_date_choice(callback: types.CallbackQuery):
+    user_id = callback.from_user.id
+    choice = callback.data.split(":", 1)[1]
+    if user_id not in user_data:
+        user_data[user_id] = {}
+    if choice == "today":
+        # Используем локальную дату (без времени)
+        today = datetime.date.today().isoformat()
+        user_data[user_id]["additional_path"] = today
+        await callback.answer()
+        await generate_short_link(target="with_path", user_id=user_id, callback=callback)
+    elif choice == "none":
+        # Не добавлять дату — очищаем поле и генерируем ссылку без даты
+        user_data[user_id].pop("additional_path", None)
+        user_data[user_id].pop("awaiting_date", None)
+        await callback.answer()
+        await generate_short_link(target="no_date", user_id=user_id, callback=callback)
+    else:
+        # Ждём ввода даты от пользователя
+        user_data[user_id]["awaiting_date"] = True
+        await callback.answer()
+        await callback.message.answer("Введите дату в формате YYYY-MM-DD (например: 2025-10-10)")
+
+
+@dp.message(lambda msg: user_data.get(msg.from_user.id, {}).get("awaiting_date"))
+async def handle_manual_date(message: types.Message):
+    user_id = message.from_user.id
+    date_str = message.text.strip()
+    try:
+        parsed = datetime.datetime.strptime(date_str, "%Y-%m-%d").date()
+    except Exception:
+        await message.answer("Неверный формат даты. Пожалуйста, введите в формате YYYY-MM-DD, например: 2025-10-10")
+        return
+    # Сохраняем дату и убираем флаг ожидания
+    user_data[user_id]["additional_path"] = parsed.isoformat()
+    user_data[user_id]["awaiting_date"] = False
+    await generate_short_link(target="with_path", user_id=user_id, message=message)
+
+
+async def generate_short_link(target, user_id, message=None, callback=None):
+    # Собираем базовый URL и UTM-метки
     base_url = user_data[user_id].get("base_url", "")
-    full_url = build_utm_url(base_url, user_data[user_id]["utm_source"], user_data[user_id]["utm_medium"], campaign_val)
+    utm_source = user_data[user_id].get("utm_source")
+    utm_medium = user_data[user_id].get("utm_medium")
+    utm_campaign = user_data[user_id].get("utm_campaign")
+    additional_path = user_data[user_id].get("additional_path", "").strip()
+
+    # Добавляем utm-параметры и, при наличии даты, прикрепляем её как utm_date в query
+    # Сначала сформируем базовую ссылку с utm_source/utm_medium/utm_campaign
+    base_with_utms = build_utm_url(base_url, utm_source, utm_medium, utm_campaign)
+    full_url = base_with_utms
+    if additional_path:
+        # Добавляем utm_date в query параметрах
+        parsed = urlparse(base_with_utms)
+        q = dict(parse_qsl(parsed.query))
+        q.update({"utm_date": additional_path})
+        new_query = urlencode(q, doseq=True)
+        full_url = urlunparse(parsed._replace(query=new_query))
+
     logger.info(f"Full UTM URL for user {user_id}: {full_url}")
-    # Отправить длинную ссылку на сокращение через API
     logger.info(f"Sending to CLC: {full_url}")
     logger.debug("CLC request payload: %s", {"url": full_url})
 
+    results = []
     try:
         short_url = await shorten_url(full_url, settings.clc_api_key)
     except Exception as e:
         logger.exception(f"CLC shorten exception for user {user_id}: {e}")
-        await callback.message.answer("❌ Ошибка при обращении к сервису сокращения. Попробуйте позже.")
+        err_text = "❌ Ошибка при обращении к сервису сокращения. Попробуйте позже."
+        if message:
+            await message.answer(err_text)
+        elif callback:
+            await callback.message.answer(err_text)
         return
 
     if short_url is None:
         logger.error("CLC shorten returned None for user %s, url=%s", user_id, full_url)
-        # Обработка ошибки сокращения
-        await callback.message.answer("❌ Не удалось сократить ссылку. Попробуйте позже.")
+        err_text = "❌ Не удалось сократить ссылку. Попробуйте позже."
+        if message:
+            await message.answer(err_text)
+        elif callback:
+            await callback.message.answer(err_text)
         return
 
-    logger.info(f"Short URL for user {user_id}: {short_url}")
-    # Сохранить в историю (оставляем только 5 последних записей)
+    # Сохраняем в истории
     history_list = user_history.get(user_id, [])
     history_list.append((base_url, full_url, short_url))
     user_history[user_id] = history_list[-50:]
 
-    # Отправить пользователю итоговый отчет с ссылками
-    result_text = ("✅ Ссылка готова!\n\n"
-               f"🔗 Исходная:\n{base_url}\n\n"
-               f"🧩 С UTM:\n{full_url}\n\n"
-               f"✂️ Сокращённая:\n{short_url}")
+    results.append((full_url, short_url, None))
+
+    # Формируем текст с результатами для пользователя
+    lines = ["✅ Результаты генерации ссылок:", f"🔗 Исходная:\n{base_url}"]
+    for full_u, short_u, err in results:
+        if short_u:
+            lines.append("\n🧩 С UTM:\n" + full_u)
+            lines.append("✂️ Сокращённая:\n" + short_u)
+        else:
+            lines.append("\n🧩 С UTM (не сокращена):\n" + full_u)
+            lines.append("⚠️ Проблема: " + (err or "Неизвестная ошибка"))
+
+    result_text = "\n\n".join(lines)
 
     webapp_button = InlineKeyboardButton(
         text="Открыть API GorBilet",
@@ -329,7 +411,10 @@ async def select_campaign(callback: types.CallbackQuery):
     )
     keyboard = types.InlineKeyboardMarkup(inline_keyboard=[[webapp_button]])
 
-    await callback.message.answer(result_text, reply_markup=keyboard)
+    if message:
+        await message.answer(result_text, reply_markup=keyboard)
+    elif callback:
+        await callback.message.answer(result_text, reply_markup=keyboard)
 
 @dp.callback_query(F.data.startswith("back:"))
 async def go_back(callback: types.CallbackQuery):
