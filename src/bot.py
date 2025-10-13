@@ -2,6 +2,7 @@ import logging
 import asyncio
 import os
 import datetime
+import re
 from urllib.parse import urlparse, urlunparse, parse_qsl, urlencode
 
 from aiogram import Bot, Dispatcher, types, F
@@ -172,6 +173,67 @@ UTM_CAMPAIGNS_FOREIGN = [
     ("Lead", "lead"),
 ]
 
+def extract_action_slug(url):
+    """
+    Извлекает часть ссылки после 'actions/' (без слешей) для использования в utm_content
+    """
+    try:
+        parsed = urlparse(url)
+        path = parsed.path
+        
+        # Ищем часть пути после /actions/
+        match = re.search(r'/actions/([^/]+)', path)
+        if match:
+            return match.group(1)
+        
+        # Если не нашли /actions/, пробуем найти последний значимый сегмент пути
+        segments = [seg for seg in path.split('/') if seg]
+        if segments:
+            return segments[-1]
+        
+        return "event"
+    except Exception as e:
+        logger.error(f"Error extracting action slug from {url}: {e}")
+        return "event"
+
+def build_utm_content_with_date(base_slug, date_str=None):
+    """
+    Формирует значение для utm_content с добавлением даты
+    """
+    if date_str:
+        # Преобразуем дату из YYYY-MM-DD в DD-MM формата
+        try:
+            date_obj = datetime.datetime.strptime(date_str, "%Y-%m-%d")
+            formatted_date = date_obj.strftime("%d-%m")
+        except ValueError:
+            formatted_date = date_str.replace("-", "")
+        
+        # Создаем utm_content с датой
+        utm_content = f"{base_slug}-{formatted_date}"
+    else:
+        utm_content = base_slug
+    
+    return utm_content
+
+def build_utm_url(base_url: str, utm_source: str, utm_medium: str, utm_campaign: str, utm_content: str = None) -> str:
+    """
+    Формирует ссылку с добавленными UTM-параметрами.
+    Если в базовой ссылке уже есть параметры, добавляет новые через '&'.
+    """
+    separator = '&' if '?' in base_url else '?'
+    # Избежать двойного разделителя, если ссылка уже заканчивается на '?' или '&'
+    if base_url.endswith('?') or base_url.endswith('&'):
+        separator = ''
+    
+    # Формируем базовые UTM-параметры
+    utm_params = f"utm_source={utm_source}&utm_medium={utm_medium}&utm_campaign={utm_campaign}"
+    
+    # Добавляем utm_content, если он передан
+    if utm_content:
+        utm_params += f"&utm_content={utm_content}"
+    
+    return f"{base_url}{separator}{utm_params}"
+
 # Обработчик команды /start – приветствие и запрос ссылки
 @dp.message(Command("start"))
 async def cmd_start(message: types.Message):
@@ -298,7 +360,7 @@ async def select_campaign(callback: types.CallbackQuery):
     builder.button(text="✏️ Ввести дату", callback_data="adddate:manual")
     builder.button(text="❌ Не добавлять дату", callback_data="adddate:none")
     builder.adjust(2)
-    await callback.message.answer("Добавить дату в ссылку? Выберите один из вариантов:", reply_markup=builder.as_markup())
+    await callback.message.answer("Добавить дату в utm_content? Выберите один из вариантов:", reply_markup=builder.as_markup())
 
 
 @dp.callback_query(F.data.startswith("adddate:"))
@@ -310,12 +372,12 @@ async def add_date_choice(callback: types.CallbackQuery):
     if choice == "today":
         # Используем локальную дату (без времени)
         today = datetime.date.today().isoformat()
-        user_data[user_id]["additional_path"] = today
+        user_data[user_id]["date_for_utm"] = today
         await callback.answer()
-        await generate_short_link(target="with_path", user_id=user_id, callback=callback)
+        await generate_short_link(target="with_date", user_id=user_id, callback=callback)
     elif choice == "none":
         # Не добавлять дату — очищаем поле и генерируем ссылку без даты
-        user_data[user_id].pop("additional_path", None)
+        user_data[user_id].pop("date_for_utm", None)
         user_data[user_id].pop("awaiting_date", None)
         await callback.answer()
         await generate_short_link(target="no_date", user_id=user_id, callback=callback)
@@ -331,14 +393,15 @@ async def handle_manual_date(message: types.Message):
     user_id = message.from_user.id
     date_str = message.text.strip()
     try:
-        parsed = datetime.datetime.strptime(date_str, "%Y-%m-%d").date()
+        # Проверяем корректность формата даты
+        datetime.datetime.strptime(date_str, "%Y-%m-%d")
     except Exception:
         await message.answer("Неверный формат даты. Пожалуйста, введите в формате YYYY-MM-DD, например: 2025-10-10")
         return
     # Сохраняем дату и убираем флаг ожидания
-    user_data[user_id]["additional_path"] = parsed.isoformat()
+    user_data[user_id]["date_for_utm"] = date_str
     user_data[user_id]["awaiting_date"] = False
-    await generate_short_link(target="with_path", user_id=user_id, message=message)
+    await generate_short_link(target="with_date", user_id=user_id, message=message)
 
 
 async def generate_short_link(target, user_id, message=None, callback=None):
@@ -347,23 +410,19 @@ async def generate_short_link(target, user_id, message=None, callback=None):
     utm_source = user_data[user_id].get("utm_source")
     utm_medium = user_data[user_id].get("utm_medium")
     utm_campaign = user_data[user_id].get("utm_campaign")
-    additional_path = user_data[user_id].get("additional_path", "").strip()
+    date_for_utm = user_data[user_id].get("date_for_utm", "").strip()
 
-    # Добавляем utm-параметры и, при наличии даты, прикрепляем её как utm_date в query
-    # Сначала сформируем базовую ссылку с utm_source/utm_medium/utm_campaign
-    base_with_utms = build_utm_url(base_url, utm_source, utm_medium, utm_campaign)
-    full_url = base_with_utms
-    if additional_path:
-        # Добавляем utm_date в query параметрах
-        parsed = urlparse(base_with_utms)
-        q = dict(parse_qsl(parsed.query))
-        q.update({"utm_date": additional_path})
-        new_query = urlencode(q, doseq=True)
-        full_url = urlunparse(parsed._replace(query=new_query))
+    # Извлекаем базовый slug из оригинальной ссылки
+    base_slug = extract_action_slug(base_url)
+    
+    # Формируем utm_content с датой (если нужно)
+    utm_content = build_utm_content_with_date(base_slug, date_for_utm)
+    
+    # Создаем финальную ссылку с UTM-параметрами
+    full_url = build_utm_url(base_url, utm_source, utm_medium, utm_campaign, utm_content)
 
     logger.info(f"Full UTM URL for user {user_id}: {full_url}")
     logger.info(f"Sending to CLC: {full_url}")
-    logger.debug("CLC request payload: %s", {"url": full_url})
 
     results = []
     try:
@@ -454,7 +513,6 @@ async def cmd_history(message: types.Message):
     await message.answer("\n".join(text_lines))
 
 # Импорт функций из сервисных модулей
-from src.services.utm_builder import build_utm_url
 from src.services.clc_shortener import shorten_url
 
 # Запуск бота
