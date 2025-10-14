@@ -1,0 +1,127 @@
+{
+  "sources": [
+    ["ВКонтакте", "vk"],
+    ["Max", "max"],
+    ["Instagram", "inst"],
+    ["TikTok", "tiktok"],
+    ["Одноклассники", "ok"],
+    ["YouTube", "youtube"],
+    ["Telegram", "telegram"],
+    ["Pinterest", "pinterest"],
+    ["Горбилет блог", "gorbilet_blog"],
+    ["Сайт Горбилет", "site_GB"]
+  ],
+  "mediums": {
+    "publications": [
+      ["Пост Горбилет", "post_GB"],
+      ["Пост театр", "post_teatr"],
+      ["Пост дети", "post_deti"],
+      ["Пост Москва", "post_msk"],
+      ["Клип Москва", "clip_msk"],
+      ["Пост тимы", "post_timy"],
+      ["Клип ТР", "clip_TR"],
+      ["Пост ТР", "post_TR"]
+    ],
+    "mailings": [
+      ["Рассылка Горбилет", "rassilka_GB"],
+      ["Рассылка театр", "rassilka_teatr"],
+      ["Рассылка дети", "rassilka_deti"],
+      ["Рассылка Москва", "rassilka_msk"],
+      ["Рассылка ТР", "rassilka_tr"],
+      ["Рассылка блог", "blog_rassilka"]
+    ],
+    "stories": [
+      ["Сторис Горбилет", "stories_GB"],
+      ["Сторис театр", "stories_teatr"],
+      ["Сторис тимы", "stories_timy"],
+      ["Сторис дети", "deti"],
+      ["Сторис Москва", "stories_msk"],
+      ["Сторис ТР", "stories_TR"]
+    ],
+    "channels": [
+      ["Канал Москва", "kanal_msk"],
+      ["Канал Горбилет", "kanal_GB"],
+      ["Канал ТР", "kanal_TR"]
+    ]
+  },
+  "campaigns": {
+    "spb": [
+      ["Спектакли СПБ", "spektakl_spb"],
+      ["Карелия СПБ", "kareliya_spb"],
+      ["Автотуры СПБ", "avtexcursion_spb"],
+      ["Пешие экскурсии СПБ", "peshexcursion_spb"],
+      ["Пригород СПБ", "prigorod_spb"],
+      ["Корабли СПБ", "korabli_spb"],
+      ["Места СПБ", "mesta_spb"],
+      ["Аквапарки СПБ", "akvapark_spb"],
+      ["Аренда СПБ", "arenda_spb"],
+      ["Другое СПБ", "other_spb"],
+      ["Блог СПБ", "blog_spb"],
+      ["Туры СПБ", "tury_spb"]
+    ],
+    "msk": [
+      ["Спектакли МСК", "spektakl_msk"],
+      ["Экскурсии МСК", "excursion_msk"],
+      ["Корабли МСК", "korabli_msk"],
+      ["Места МСК", "mesta_msk"],
+      ["Другое МСК", "other_msk"],
+      ["Блог МСК", "blog_msk"],
+      ["Блог рассылка МСК", "blog_rassilka_msk"]
+    ],
+    "tr": [
+      ["Stories GB", "stories_GB"],
+      ["Stories Театр", "stories_teatr"],
+      ["Дзен Турция", "dzen_TR"],
+      ["Блог Турция", "blog_TR"],
+      ["Блог контент Турция", "blog_content_TR"],
+      ["Блог рассылка Турция", "blog_rassilka_TR"],
+      ["nnnn", "new_source_2024"]
+    ],
+    "regions": [
+      ["Сочи", "sochi"],
+      ["Казань", "kazan"],
+      ["Калининград", "kaliningrad"],
+      ["Нижний Новгород", "nn"],
+      ["Анапа", "anapa"],
+      ["Кисловодск", "kislovodsk"],
+      ["Дагестан", "dagestan"],
+      ["Осетия", "osetia"],
+      ["Геленджик", "gelendghik"],
+      ["Крым", "crimea"],
+      ["Севастополь", "sevastopol"],
+      ["Владикавказ", "vladikavkaz"],
+      ["Ялта", "yalta"],
+      ["Псков", "pskov"],
+      ["Регионы", "regions"],
+      ["Ярославль", "yar"],
+      ["Кострома", "kostroma"],
+      ["Суздаль", "suzdal"],
+      ["Вологда", "vologda"],
+      ["Рязань", "ryazan"],
+      ["Краснодар", "krasnodar"],
+      ["Петрозаводск", "petrozavodsk"],
+      ["Ростов", "rostov"],
+      ["Смоленск", "smolensk"],
+      ["Выборг", "vuborg"],
+      ["Великий Новгород", "veliky"]
+    ],
+    "foreign": [
+      ["Грузия", "georgia"],
+      ["Абхазия", "abhazia"],
+      ["Минск", "minsk"],
+      ["Байкал", "baikal"],
+      ["Мурманск", "murmansk"],
+      ["Алматы", "almatu"],
+      ["Новосибирск", "nsk"],
+      ["Анталья", "antalya"],
+      ["Тбилиси", "tbilisi"],
+      ["Шарм-эль-Шейх", "sharmelsheikh"],
+      ["Владивосток", "vladivostok"],
+      ["Стамбул", "stambul"],
+      ["Тула", "tula"],
+      ["Коломна", "kolomna"],
+      ["Баку", "baku"],
+      ["Lead", "lead"]
+    ]
+  }
+}
