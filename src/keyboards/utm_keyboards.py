@@ -77,7 +77,7 @@ def build_campaign_groups_keyboard() -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     builder.button(text="📍 Санкт-Петербург", callback_data="campgrp:spb")
     builder.button(text="🏙 Москва", callback_data="campgrp:msk")
-    builder.button(text="✈️ Турция и зарубежье", callback_data="campgrp:tr")
+    builder.button(text="✈️ Турист", callback_data="campgrp:tr")
     builder.button(text="🌍 Регионы России", callback_data="campgrp:regions")
     builder.button(text="🌐 Зарубежные направления", callback_data="campgrp:foreign")
     builder.adjust(2)
