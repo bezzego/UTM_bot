@@ -14,6 +14,39 @@ from src.state.user_state import utm_editing_data
 router = Router()
 
 
+def _reset_add_state(user_id: int) -> None:
+    utm_editing_data.pop(user_id, None)
+
+
+def _is_add_active(user_id: int) -> bool:
+    return user_id in utm_editing_data
+
+
+async def _exit_add_mode(
+    user_id: int,
+    message: types.Message | None = None,
+    callback: types.CallbackQuery | None = None,
+) -> None:
+    had_state = _is_add_active(user_id)
+    _reset_add_state(user_id)
+
+    if callback:
+        await callback.answer()
+
+    if not had_state:
+        if message:
+            await message.answer("Режим управления UTM-метками не активен.")
+        elif callback:
+            await callback.message.answer("Режим управления UTM-метками не активен.")
+        return
+
+    text = "Вы вышли из режима управления UTM-метками."
+    if message:
+        await message.answer(text)
+    elif callback:
+        await callback.message.answer(text)
+
+
 @router.message(Command("add"))
 async def cmd_add(message: types.Message) -> None:
     user_id = message.from_user.id
@@ -22,9 +55,20 @@ async def cmd_add(message: types.Message) -> None:
     categories = utm_manager.get_all_categories()
     await message.answer(
         "🛠 Панель управления UTM-метками\n\n"
-        "Выберите категорию для добавления новых меток:",
+        "Выберите категорию для добавления новых меток.\n"
+        "Чтобы выйти, отправьте /cancel, напишите «Отмена» или нажмите кнопку «❌ Выйти».",
         reply_markup=build_categories_keyboard(categories),
     )
+
+
+@router.message(Command("cancel"))
+async def cancel_add_command(message: types.Message) -> None:
+    await _exit_add_mode(message.from_user.id, message=message)
+
+
+@router.message(lambda msg: msg.text and msg.text.lower() in {"отмена", "cancel", "выход", "stop"})
+async def cancel_add_text(message: types.Message) -> None:
+    await _exit_add_mode(message.from_user.id, message=message)
 
 
 @router.callback_query(F.data.startswith("add_category:"))
@@ -188,3 +232,12 @@ async def back_to_categories(callback: types.CallbackQuery) -> None:
         "Выберите категорию для добавления новых меток:",
         reply_markup=build_categories_keyboard(categories),
     )
+
+
+@router.callback_query(F.data == "exit_add")
+async def exit_add_callback(callback: types.CallbackQuery) -> None:
+    await _exit_add_mode(callback.from_user.id, callback=callback)
+    try:
+        await callback.message.edit_reply_markup(reply_markup=None)
+    except Exception:
+        pass

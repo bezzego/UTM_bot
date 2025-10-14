@@ -8,6 +8,7 @@ def build_categories_keyboard(categories: dict) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     for key, (name, _) in categories.items():
         builder.add(InlineKeyboardButton(text=name, callback_data=f"add_category:{key}"))
+    builder.add(InlineKeyboardButton(text="❌ Выйти", callback_data="exit_add"))
     builder.adjust(1)
     return builder.as_markup()
 
@@ -33,6 +34,12 @@ def build_category_management_keyboard(category_key: str, items: Sequence[Tuple[
         InlineKeyboardButton(
             text="⬅️ Назад к категориям",
             callback_data="back_to_categories",
+        )
+    )
+    builder.add(
+        InlineKeyboardButton(
+            text="❌ Выйти",
+            callback_data="exit_add",
         )
     )
     builder.adjust(1)
