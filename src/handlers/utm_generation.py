@@ -180,6 +180,20 @@ async def add_date_choice(callback: types.CallbackQuery) -> None:
         await generate_short_link(user_id, callback=callback)
         return
 
+    if choice == "tomorrow":
+        tomorrow = (datetime.date.today() + datetime.timedelta(days=1)).isoformat()
+        user_data[user_id]["date_for_utm"] = tomorrow
+        await callback.answer()
+        await generate_short_link(user_id, callback=callback)
+        return
+
+    if choice == "dayafter":
+        day_after_tomorrow = (datetime.date.today() + datetime.timedelta(days=2)).isoformat()
+        user_data[user_id]["date_for_utm"] = day_after_tomorrow
+        await callback.answer()
+        await generate_short_link(user_id, callback=callback)
+        return
+
     if choice == "none":
         user_data[user_id].pop("date_for_utm", None)
         user_data[user_id].pop("awaiting_date", None)

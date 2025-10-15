@@ -96,6 +96,8 @@ def build_campaign_keyboard(items: Iterable[Tuple[str, str]]) -> InlineKeyboardM
 def build_date_choice_keyboard() -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     builder.button(text="📅 Сегодня", callback_data="adddate:today")
+    builder.button(text="📆 Завтра", callback_data="adddate:tomorrow")
+    builder.button(text="📆 Послезавтра", callback_data="adddate:dayafter")
     builder.button(text="✏️ Ввести дату", callback_data="adddate:manual")
     builder.button(text="❌ Не добавлять дату", callback_data="adddate:none")
     builder.adjust(2)
