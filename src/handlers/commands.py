@@ -53,9 +53,17 @@ async def handle_password(message: types.Message) -> None:
         )
         return
 
-    database.ban_user(user_id, reason="invalid_password")
-    pending_password_users.discard(user_id)
-    await message.answer("❌ Пароль неверный. Вы навсегда заблокированы.")
+    attempts = database.increment_auth_attempts(user_id)
+    remaining = max(0, 3 - attempts)
+
+    if attempts >= 3:
+        database.ban_user(user_id, reason="invalid_password")
+        pending_password_users.discard(user_id)
+        await message.answer("❌ Пароль неверный. Лимит попыток исчерпан, вы заблокированы.")
+        return
+
+    pending_password_users.add(user_id)
+    await message.answer(f"❌ Пароль неверный. Осталось попыток: {remaining}.")
 
 
 @router.message(F.text == "Отправить ссылку")

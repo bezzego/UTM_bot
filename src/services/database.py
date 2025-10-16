@@ -34,6 +34,13 @@ class DatabaseManager:
         )
         """
 
+        attempts_table = """
+        CREATE TABLE IF NOT EXISTS auth_attempts (
+            user_id INTEGER PRIMARY KEY,
+            attempts INTEGER NOT NULL DEFAULT 0
+        )
+        """
+
         history_table = """
         CREATE TABLE IF NOT EXISTS history (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -50,6 +57,7 @@ class DatabaseManager:
             cursor = self._connection.cursor()
             cursor.execute(users_table)
             cursor.execute(banned_table)
+            cursor.execute(attempts_table)
             cursor.execute(history_table)
             self._connection.commit()
 
@@ -61,6 +69,7 @@ class DatabaseManager:
         now = datetime.utcnow().isoformat()
         query = "INSERT OR IGNORE INTO users (user_id, authorized_at) VALUES (?, ?)"
         self._execute(query, (user_id, now))
+        self.reset_auth_attempts(user_id)
 
     def is_user_banned(self, user_id: int) -> bool:
         query = "SELECT 1 FROM banned_users WHERE user_id = ?"
@@ -73,6 +82,7 @@ class DatabaseManager:
         VALUES (?, ?, ?)
         """
         self._execute(query, (user_id, now, reason))
+        self.reset_auth_attempts(user_id)
 
     def add_history(self, user_id: int, base_url: str, utm_url: str, short_url: str) -> None:
         now = datetime.utcnow().isoformat()
@@ -92,6 +102,33 @@ class DatabaseManager:
         """
         rows = self._fetchall(query, (user_id, limit))
         return [(row["base_url"], row["utm_url"], row["short_url"]) for row in rows]
+
+    def get_auth_attempts(self, user_id: int) -> int:
+        query = "SELECT attempts FROM auth_attempts WHERE user_id = ?"
+        rows = self._fetchall(query, (user_id,))
+        if not rows:
+            return 0
+        return int(rows[0]["attempts"])
+
+    def increment_auth_attempts(self, user_id: int) -> int:
+        with self._lock:
+            cursor = self._connection.cursor()
+            cursor.execute(
+                """
+                INSERT INTO auth_attempts (user_id, attempts)
+                VALUES (?, 1)
+                ON CONFLICT(user_id) DO UPDATE SET attempts = attempts + 1
+                """,
+                (user_id,),
+            )
+            self._connection.commit()
+            cursor.execute("SELECT attempts FROM auth_attempts WHERE user_id = ?", (user_id,))
+            row = cursor.fetchone()
+        return int(row["attempts"]) if row else 0
+
+    def reset_auth_attempts(self, user_id: int) -> None:
+        query = "DELETE FROM auth_attempts WHERE user_id = ?"
+        self._execute(query, (user_id,))
 
     def _execute(self, query: str, params: Iterable) -> None:
         with self._lock:
