@@ -17,7 +17,8 @@ from src.keyboards.utm_keyboards import (
 from src.services.clc_shortener import shorten_url
 from src.services.utm_builder import build_utm_url
 from src.services.utm_manager import utm_manager
-from src.state.user_state import user_data, user_history
+from src.services.database import database
+from src.state.user_state import user_data
 from src.utils.utm import build_utm_content_with_date, extract_action_slug
 
 
@@ -262,9 +263,7 @@ async def generate_short_link(
         )
         return
 
-    history_list = user_history.get(user_id, [])
-    history_list.append((base_url, full_url, short_url))
-    user_history[user_id] = history_list[-50:]
+    database.add_history(user_id, base_url, full_url, short_url)
 
     lines = ["✅ Результаты генерации ссылок:", f"🔗 Исходная:\n{base_url}"]
     lines.append("\n🧩 С UTM:\n" + full_url)

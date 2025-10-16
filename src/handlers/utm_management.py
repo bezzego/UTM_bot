@@ -48,6 +48,7 @@ async def _exit_add_mode(
 
 
 @router.message(Command("add"))
+@router.message(F.text == "Добавить UTM")
 async def cmd_add(message: types.Message) -> None:
     user_id = message.from_user.id
     utm_editing_data[user_id] = {"step": None, "category": None}
