@@ -8,7 +8,6 @@ load_dotenv()
 
 class Settings(BaseSettings):
     bot_token: str
-    clc_api_key: str
     bot_access_password: str = Field(alias="BOT_ACCESS_PASSWORD")
     database_path: str = Field(default="data/bot_state.sqlite3")
 

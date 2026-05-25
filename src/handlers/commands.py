@@ -262,7 +262,7 @@ async def show_history(message: types.Message) -> None:
         return
 
     text_lines = ["🧾 Последние сохранённые ссылки:"]
-    for index, (original, _, short) in enumerate(history, start=1):
-        text_lines.append(f"{index}. {short} — исходная: {original}")
+    for index, (original, utm_url) in enumerate(history, start=1):
+        text_lines.append(f"{index}. {utm_url} — исходная: {original}")
 
     await message.answer("\n".join(text_lines))

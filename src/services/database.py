@@ -54,7 +54,6 @@ class DatabaseManager:
             user_id INTEGER NOT NULL,
             base_url TEXT NOT NULL,
             utm_url TEXT NOT NULL,
-            short_url TEXT NOT NULL,
             created_at TEXT NOT NULL,
             FOREIGN KEY (user_id) REFERENCES users(user_id)
         )
@@ -122,24 +121,32 @@ class DatabaseManager:
         self._execute(query, (user_id, username, now, reason))
         self.reset_auth_attempts(user_id)
 
-    def add_history(self, user_id: int, base_url: str, utm_url: str, short_url: str) -> None:
+    def add_history(self, user_id: int, base_url: str, utm_url: str) -> None:
         now = datetime.utcnow().isoformat()
-        query = """
-        INSERT INTO history (user_id, base_url, utm_url, short_url, created_at)
-        VALUES (?, ?, ?, ?, ?)
-        """
-        self._execute(query, (user_id, base_url, utm_url, short_url, now))
+        if self._has_column("history", "short_url"):
+            query = """
+            INSERT INTO history (user_id, base_url, utm_url, short_url, created_at)
+            VALUES (?, ?, ?, ?, ?)
+            """
+            self._execute(query, (user_id, base_url, utm_url, utm_url, now))
+            return
 
-    def get_history(self, user_id: int, limit: int = 50) -> List[Tuple[str, str, str]]:
         query = """
-        SELECT base_url, utm_url, short_url
+        INSERT INTO history (user_id, base_url, utm_url, created_at)
+        VALUES (?, ?, ?, ?)
+        """
+        self._execute(query, (user_id, base_url, utm_url, now))
+
+    def get_history(self, user_id: int, limit: int = 50) -> List[Tuple[str, str]]:
+        query = """
+        SELECT base_url, utm_url
         FROM history
         WHERE user_id = ?
         ORDER BY id DESC
         LIMIT ?
         """
         rows = self._fetchall(query, (user_id, limit))
-        return [(row["base_url"], row["utm_url"], row["short_url"]) for row in rows]
+        return [(row["base_url"], row["utm_url"]) for row in rows]
 
     def list_authorized_users(self) -> List[sqlite3.Row]:
         query = """
@@ -216,6 +223,12 @@ class DatabaseManager:
             cursor = self._connection.cursor()
             cursor.execute(query, tuple(params))
             self._connection.commit()
+
+    def _has_column(self, table: str, column: str) -> bool:
+        with self._lock:
+            cursor = self._connection.cursor()
+            cursor.execute(f"PRAGMA table_info({table})")
+            return any(row["name"] == column for row in cursor.fetchall())
 
     def _fetchall(self, query: str, params: Iterable) -> List[sqlite3.Row]:
         with self._lock:

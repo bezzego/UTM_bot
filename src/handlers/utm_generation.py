@@ -5,7 +5,6 @@ from typing import Optional, Sequence, Tuple
 from aiogram import F, Router, types
 from aiogram.types import InlineKeyboardButton
 
-from src.config import settings
 from src.keyboards.utm_keyboards import (
     build_campaign_groups_keyboard,
     build_campaign_keyboard,
@@ -14,7 +13,6 @@ from src.keyboards.utm_keyboards import (
     build_medium_keyboard,
     build_sources_keyboard,
 )
-from src.services.clc_shortener import shorten_url
 from src.services.utm_builder import build_utm_url
 from src.services.utm_manager import utm_manager
 from src.services.database import database
@@ -178,28 +176,28 @@ async def add_date_choice(callback: types.CallbackQuery) -> None:
         today = datetime.date.today().isoformat()
         user_data[user_id]["date_for_utm"] = today
         await callback.answer()
-        await generate_short_link(user_id, callback=callback)
+        await generate_utm_link(user_id, callback=callback)
         return
 
     if choice == "tomorrow":
         tomorrow = (datetime.date.today() + datetime.timedelta(days=1)).isoformat()
         user_data[user_id]["date_for_utm"] = tomorrow
         await callback.answer()
-        await generate_short_link(user_id, callback=callback)
+        await generate_utm_link(user_id, callback=callback)
         return
 
     if choice == "dayafter":
         day_after_tomorrow = (datetime.date.today() + datetime.timedelta(days=2)).isoformat()
         user_data[user_id]["date_for_utm"] = day_after_tomorrow
         await callback.answer()
-        await generate_short_link(user_id, callback=callback)
+        await generate_utm_link(user_id, callback=callback)
         return
 
     if choice == "none":
         user_data[user_id].pop("date_for_utm", None)
         user_data[user_id].pop("awaiting_date", None)
         await callback.answer()
-        await generate_short_link(user_id, callback=callback)
+        await generate_utm_link(user_id, callback=callback)
         return
 
     user_data[user_id]["awaiting_date"] = True
@@ -222,10 +220,10 @@ async def handle_manual_date(message: types.Message) -> None:
 
     user_data[user_id]["date_for_utm"] = date_str
     user_data[user_id]["awaiting_date"] = False
-    await generate_short_link(user_id, message=message)
+    await generate_utm_link(user_id, message=message)
 
 
-async def generate_short_link(
+async def generate_utm_link(
     user_id: int,
     message: Optional[types.Message] = None,
     callback: Optional[types.CallbackQuery] = None,
@@ -241,33 +239,11 @@ async def generate_short_link(
     full_url = build_utm_url(base_url, utm_source, utm_medium, utm_campaign, utm_content)
 
     logger.info("Full UTM URL for user %s: %s", user_id, full_url)
-    logger.info("Sending to CLC: %s", full_url)
 
-    try:
-        short_url = await shorten_url(full_url, settings.clc_api_key)
-    except Exception as exc:  # pragma: no cover - network failure path
-        logger.exception("CLC shorten exception for user %s: %s", user_id, exc)
-        await _reply(
-            message,
-            callback,
-            "❌ Ошибка при обращении к сервису сокращения. Попробуйте позже.",
-        )
-        return
-
-    if short_url is None:
-        logger.error("CLC shorten returned None for user %s, url=%s", user_id, full_url)
-        await _reply(
-            message,
-            callback,
-            "❌ Не удалось сократить ссылку. Попробуйте позже.",
-        )
-        return
-
-    database.add_history(user_id, base_url, full_url, short_url)
+    database.add_history(user_id, base_url, full_url)
 
     lines = ["✅ Результаты генерации ссылок:", f"🔗 Исходная:\n{base_url}"]
     lines.append("\n🧩 С UTM:\n" + full_url)
-    lines.append("✂️ Сокращённая:\n" + short_url)
     result_text = "\n\n".join(lines)
 
     webapp_button = InlineKeyboardButton(
