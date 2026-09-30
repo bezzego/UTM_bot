@@ -125,10 +125,10 @@ async def handle_utm_value(message: types.Message) -> None:
     user_id = message.from_user.id
     value = message.text.strip()
 
-    if not re.match(r"^[a-z0-9_]+$", value):
+    if not re.match(r"^[A-Za-z0-9_]+$", value):
         await message.answer(
             "Неверный формат! Используйте только:\n"
-            "• латинские буквы в нижнем регистре\n"
+            "• латинские буквы (строчные и заглавные)\n"
             "• цифры\n"
             "• нижние подчеркивания\n\n"
             "Пример: new_source_2024\n"
